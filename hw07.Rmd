@@ -1,0 +1,51 @@
+---
+title: "hw07"
+author: "陆靖磊 22300680221"
+date: "2024-11-30"
+CJKmainfont: Microsoft YaHei
+output:
+  pdf_document:
+    includes:
+      header-includes:
+        - \usepackage{xeCJK}
+      keep_tex: yes
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1![1](C:/Users/13611/desktop/22dfdb199e483ba1bd79cf5940fdca9.jpg) 2![2](C:/Users/13611/desktop/5df4314309ac8428a1008b1f752ba2a.jpg)
+
+2(d)
+
+```{r}
+sigma2 <- 1  # 方差
+mu0 <- 0     # 先验均值
+tau2 <- 1    # 先验方差
+X1 <- 2      # 观测值
+
+# 后验分布参数
+mu1 <- (sigma2 * mu0 + tau2 * X1) / (sigma2 + tau2)
+tau12 <- (sigma2 * tau2) / (sigma2 + tau2)
+
+# 贝叶斯后验预测分布
+n_samples <- 100
+mu_samples <- rnorm(n_samples, mu1, sqrt(tau12))
+X_new_bayesian <- rnorm(n_samples, mu_samples, sqrt(sigma2))
+
+# 频率学派预测分布
+X_new_frequentist <- rnorm(n_samples, X1, sqrt(sigma2))
+
+# 绘制结果
+par(mfrow=c(1,2))
+hist(X_new_bayesian, breaks=20, col=rgb(0,0,1,0.5), main="Bayesian Posterior Predictive", xlab="X_new")
+hist(X_new_frequentist, breaks=20, col=rgb(1,0,0,0.5), main="Frequentist Predictive", xlab="X_new")
+
+# 合并两个直方图
+par(mfrow=c(1,1))
+hist(X_new_bayesian, breaks=20, col=rgb(0,0,1,0.5), main="Posterior Predictive Distributions", xlab="X_new", ylim=c(0, max(hist(X_new_bayesian, plot=FALSE)$counts, hist(X_new_frequentist, plot=FALSE)$counts)))
+hist(X_new_frequentist, breaks=20, col=rgb(1,0,0,0.5), add=TRUE)
+legend("topright", legend=c("Bayesian", "Frequentist"), fill=c(rgb(0,0,1,0.5), rgb(1,0,0,0.5)))
+```
