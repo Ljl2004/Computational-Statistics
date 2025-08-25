@@ -1,0 +1,181 @@
+---
+title: "hw05"
+author: "陆靖磊 22300680221"
+date: "2024-11-17"
+CJKmainfont: Microsoft YaHei
+output:
+  pdf_document:
+    includes:
+      header-includes:
+        - \usepackage{xeCJK}
+      keep_tex: yes
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+8.4
+```{r}
+library(boot)
+
+data <- aircondit[, 1]
+
+# 定义计算MLE的函数
+calculate_mle <- function(data, indices) {
+  mean_value <- mean(data[indices])
+  mle_estimate <- 1 / mean_value
+  return(mle_estimate)
+}
+
+# 执行Bootstrap过程
+bootstrap_results <- boot(
+  data = data,
+  statistic = calculate_mle,
+  R = 1000
+)
+
+print(bootstrap_results)
+
+detach(package:boot)
+```
+
+8.6
+```{r}
+#获取数据、计算相关系数矩阵、绘制散点图
+library(bootstrap)
+attach(scor)
+cor(scor)
+pairs(scor)
+```
+
+```{r}
+#分别用bootstrap方法估计四个相关系数
+library(boot)
+cor.stat <- function(x, i = 1:NROW(x)) {
+    return(cor(x[i, 1], x[i, 2]))
+}
+x <- as.matrix(scor)
+boot(x[, c(1,2)], statistic = cor.stat, R = 1000)
+boot(x[, c(3,4)], statistic = cor.stat, R = 1000)
+boot(x[, c(3,5)], statistic = cor.stat, R = 1000)
+boot(x[, c(4,5)], statistic = cor.stat, R = 1000)
+
+detach(scor)
+detach(package:bootstrap)
+detach(package:boot)
+```
+
+8.7
+```{r}
+library(bootstrap)
+attach(scor)
+x <- cov(as.matrix(scor))
+e <- eigen(x)
+lambda <- e$values
+lambda_1_hat=lambda[1]
+theta_hat=lambda_1_hat/sum(lambda)
+theta_hat
+```
+```{r}
+theta <- function(x, i) {
+    y <- as.matrix(x[i, ])
+    s <- cov(y)
+    e <- eigen(s)
+    lambda <- e$values
+    max(lambda/sum(lambda))
+}
+library(boot)
+boot(scor, statistic = theta, R = 1000)
+```
+θ估计量为0.619，偏差为0.0018，标准误为0.047
+
+8.A
+```{r}
+set.seed(123)
+
+# 设定参数
+n <- 30  # sample size
+mu <- 0  # true mean
+sigma <- 1  # true standard deviation
+B <- 1000  # number of bootstrap samples
+M <- 1000  # number of Monte Carlo simulations
+alpha <- 0.05  # significance level
+coverage_normal <- 0
+coverage_basic <- 0
+coverage_percentile <- 0
+
+for (i in 1:M) {
+  # Generate a sample
+  sample <- rnorm(n, mean = mu, sd = sigma)
+  sample_mean <- mean(sample)
+  
+  # Bootstrap resampling
+  bootstrap_means <- replicate(B, mean(sample(sample, replace = TRUE)))
+  
+  # Standard normal bootstrap CI
+  se_boot <- sd(bootstrap_means)
+  ci_normal <- c(sample_mean - qnorm(1 - alpha/2) * se_boot,
+                 sample_mean + qnorm(1 - alpha/2) * se_boot)
+  
+  # Basic bootstrap CI
+  ci_basic <- 2 * sample_mean - quantile(bootstrap_means, probs = c(1 - alpha/2, alpha/2))
+  
+  # Percentile bootstrap CI
+  ci_percentile <- quantile(bootstrap_means, probs = c(alpha/2, 1 - alpha/2))
+  
+  # Check coverage
+  coverage_normal <- coverage_normal + (ci_normal[1] <= mu & mu <= ci_normal[2])
+  coverage_basic <- coverage_basic + (ci_basic[1] <= mu & mu <= ci_basic[2])
+  coverage_percentile <- coverage_percentile + (ci_percentile[1] <= mu & mu <= ci_percentile[2])
+}
+
+# Calculate proportions
+coverage_normal <- coverage_normal / M
+coverage_basic <- coverage_basic / M
+coverage_percentile <- coverage_percentile / M
+
+cat("Coverage Probability (Normal):", coverage_normal, "\n")
+cat("Coverage Probability (Basic):", coverage_basic, "\n")
+cat("Coverage Probability (Percentile):", coverage_percentile, "\n")
+```
+
+8.B
+```{r}
+library(e1071)
+
+calc_skewness <- function(x) {
+  skewness(x)
+}
+
+coverage_normal_skew <- 0
+coverage_chi_skew <- 0
+
+for (i in 1:M) {
+  # Generate normal sample
+  sample_normal <- rnorm(n, mean = mu, sd = sigma)
+  skew_normal <- calc_skewness(sample_normal)
+  
+  # Bootstrap resampling for normal
+  bootstrap_skew_normal <- replicate(B, calc_skewness(sample(sample_normal, replace = TRUE)))
+  ci_percentile_normal <- quantile(bootstrap_skew_normal, probs = c(alpha/2, 1 - alpha/2))
+  coverage_normal_skew <- coverage_normal_skew + (ci_percentile_normal[1] <= 0 & 0 <= ci_percentile_normal[2])
+  
+  # Generate chi-squared sample
+  sample_chi <- rchisq(n, df = 5)
+  skew_chi <- calc_skewness(sample_chi)
+  
+  # Bootstrap resampling for chi-squared
+  bootstrap_skew_chi <- replicate(B, calc_skewness(sample(sample_chi, replace = TRUE)))
+  ci_percentile_chi <- quantile(bootstrap_skew_chi, probs = c(alpha/2, 1 - alpha/2))
+  coverage_chi_skew <- coverage_chi_skew + (ci_percentile_chi[1] <= skew_chi & skew_chi <= ci_percentile_chi[2])
+}
+
+# Calculate proportions
+coverage_normal_skew <- coverage_normal_skew / M
+coverage_chi_skew <- coverage_chi_skew / M
+
+cat("Coverage Probability for Skewness (Normal):", coverage_normal_skew, "\n")
+cat("Coverage Probability for Skewness (Chi-squared):", coverage_chi_skew, "\n")
+```
